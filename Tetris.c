@@ -1,6 +1,11 @@
 #include <stdio.h>
+#include <stdbool.h>
 
-typedef enum
+#define CANVAS_WIDTH 10
+#define CANVAS_HEIGHT 20   
+
+//對應形狀ID
+typedef enum 
 {
     EMPTY = -1,
     I,
@@ -12,9 +17,9 @@ typedef enum
     Z
 }ShapeId;
 
-typedef enum
+//對應顏色
+typedef enum 
 {
-    BLACK = 40,
     RED = 41,
     GREEN,
     YELLOW,
@@ -22,9 +27,28 @@ typedef enum
     PURPLE,
     CYAN,
     WHITE,
+    BLACK = 0,
 }Color;
 
-typedef struct
+//遊戲板上的方塊
+typedef struct {
+    Color color;    //這個方塊的顏色
+    ShapeId shape;  //這個方塊的ID
+    bool current;   //目前的狀態
+}Block;
+
+//遊戲狀態
+typedef struct {
+    int x;
+    int y;
+    int score;
+    int rotate;
+    int fallTime;
+    ShapeId queue[4];
+}State;
+
+//方塊定義
+typedef struct 
 {
     ShapeId shape;
     Color color;
@@ -32,36 +56,37 @@ typedef struct
     char rotates[4][4][4];
 }Shape;
 
-Shape shapes[7] =
-{
+//7種方塊
+Shape shapes[7] = {
     {
         .shape = I,
         .color = CYAN,
         .size = 4,
-        .rotates = {
+        .rotates =
+        {
             {
-                {0,0,0,0},
-                {1,1,1,1},
-                {0,0,0,0},
-                {0,0,0,0}
+                {0, 0, 0, 0},
+                {1, 1, 1, 1},
+                {0, 0, 0, 0},
+                {0, 0, 0, 0}
             },
             {
-                {0,0,1,0},
-                {0,0,1,0},
-                {0,0,1,0},
-                {0,0,1,0}
+                {0, 0, 1, 0},
+                {0, 0, 1, 0},
+                {0, 0, 1, 0},
+                {0, 0, 1, 0}
             },
             {
-                {0,0,0,0},
-                {0,0,0,0},
-                {1,1,1,1},
-                {0,0,0,0}
+                {0, 0, 0, 0},
+                {0, 0, 0, 0},
+                {1, 1, 1, 1},
+                {0, 0, 0, 0}
             },
             {
-                {0,1,0,0},
-                {0,1,0,0},
-                {0,1,0,0},
-                {0,1,0,0}
+                {0, 1, 0, 0},
+                {0, 1, 0, 0},
+                {0, 1, 0, 0},
+                {0, 1, 0, 0}
             }
         }
     },
@@ -69,106 +94,107 @@ Shape shapes[7] =
         .shape = J,
         .color = BLUE,
         .size = 3,
-        .rotates = {
+        .rotates =
+        {
             {
-                {0,1,0},
-                {0,1,0},
-                {1,1,0}
-
+                {1, 0, 0},
+                {1, 1, 1},
+                {0, 0, 0}
             },
             {
-                {1,0,0},
-                {1,1,1},
-                {0,0,0}
+                {0, 1, 1},
+                {0, 1, 0},
+                {0, 1, 0}
             },
             {
-                {0,1,1},
-                {0,1,0},
-                {0,1,0}
+                {0, 0, 0},
+                {1, 1, 1},
+                {0, 0, 1}
             },
             {
-                {0,0,0},
-                {1,1,1},
-                {0,0,1}
+                {0, 1, 0},
+                {0, 1, 0},
+                {1, 1, 0}
             }
         }
     },
     {
         .shape = L,
-        .color = WHITE,
+        .color = YELLOW,
         .size = 3,
-        .rotates = {
+        .rotates =
+        {
             {
-                {0,0,1},
-                {1,1,1},
-                {0,0,0}
-
+                {0, 0, 1},
+                {1, 1, 1},
+                {0, 0, 0}
             },
             {
-                {0,1,0},
-                {0,1,0},
-                {0,1,1}
+                {0, 1, 0},
+                {0, 1, 0},
+                {0, 1, 1}
             },
             {
-                {0,0,0},
-                {1,1,1},
-                {1,0,0}
+                {0, 0, 0},
+                {1, 1, 1},
+                {1, 0, 0}
             },
             {
-                {1,1,0},
-                {0,1,0},
-                {0,1,0}
+                {1, 1, 0},
+                {0, 1, 0},
+                {0, 1, 0}
             }
         }
     },
     {
         .shape = O,
-        .color = YELLOW,
+        .color = WHITE,
         .size = 2,
-        .rotates = {
+        .rotates =
+        {
             {
-                {1,1},
-                {1,1}
+                {1, 1},
+                {1, 1}
             },
             {
-                {1,1},
-                {1,1}
+                {1, 1},
+                {1, 1}
             },
             {
-                {1,1},
-                {1,1}
+                {1, 1},
+                {1, 1}
             },
             {
-                {1,1},
-                {1,1}
+                {1, 1},
+                {1, 1}
             }
         }
     },
     {
         .shape = S,
-        .color = RED,
+        .color = GREEN,
         .size = 3,
-        .rotates = {
+        .rotates =
+        {
             {
-                {0,1,1},
-                {1,1,0},
-                {0,0,0}
-
+                {0, 1, 1},
+                {1, 1, 0},
+                {0, 0, 0}
             },
             {
-                {0,1,0},
-                {0,1,1},
-                {0,0,1}
+                {0, 1, 0},
+                {0, 1, 1},
+                {0, 0, 1}
             },
             {
-                {0,0,0},
-                {0,1,1},
-                {1,1,0}
+                {0, 0, 0},
+                {0, 1, 1},
+                {1, 1, 0}
             },
             {
-                {1,0,0},
-                {1,1,0},
-                {0,1,0}
+                {1, 0, 0},
+                {1, 1, 0},
+                {0, 1, 0}
             }
         }
     },
@@ -176,84 +202,116 @@ Shape shapes[7] =
         .shape = T,
         .color = PURPLE,
         .size = 3,
-        .rotates = {
+        .rotates =
+        {
             {
-                {0,1,0},
-                {1,1,1},
-                {0,0,0}
+                {0, 1, 0},
+                {1, 1, 1},
+                {0, 0, 0}
+            },
 
+                {{0, 1, 0},
+                {0, 1, 1},
+                {0, 1, 0}
             },
             {
-                {0,1,0},
-                {0,1,1},
-                {0,1,0}
+                {0, 0, 0},
+                {1, 1, 1},
+                {0, 1, 0}
             },
             {
-                {0,0,0},
-                {1,1,1},
-                {0,1,0}
-            },
-            {
-                {0,1,0},
-                {1,1,0},
-                {0,1,0}
+                {0, 1, 0},
+                {1, 1, 0},
+                {0, 1, 0}
             }
         }
-    }, 
+    },
     {
         .shape = Z,
-        .color = GREEN,
+        .color = RED,
         .size = 3,
-        .rotates = {
+        .rotates =
+        {
             {
-                {1,1,0},
-                {0,1,1},
-                {0,0,0}
-
+                {1, 1, 0},
+                {0, 1, 1},
+                {0, 0, 0}
             },
             {
-                {0,0,1},
-                {0,1,1},
-                {0,1,0}
+                {0, 0, 1},
+                {0, 1, 1},
+                {0, 1, 0}
             },
             {
-                {0,0,0},
-                {1,1,0},
-                {0,1,1}
+                {0, 0, 0},
+                {1, 1, 0},
+                {0, 1, 1}
             },
             {
-                {0,1,0},
-                {1,1,0},
-                {1,0,0}
+                {0, 1, 0},
+                {1, 1, 0},
+                {1, 0, 0}
             }
         }
-    }
-
+    },
 };
 
+//設定遊戲板
+void setBlock(Block* block, Color color, ShapeId shape, bool current)
+{
+    block->color = color;
+    block->shape = shape;
+    block->current = current;
+}
 
+//重設遊戲板
+void resetBlock(Block* block)
+{
+    block->color = BLACK;
+    block->shape = EMPTY;
+    block->current = false;
+}
 
 int main()
 {
-    Color cur;
-
-    for (int i = 0; i < 7; i++) {
-        for (int r = 0; r < 4; r++) {
-            //印出方塊
-            for (int s = 0; s < shapes[i].size; s++) {
-                for (int t = 0; t < shapes[i].size ; t++) {
-                    if (shapes[i].rotates[r][s][t] == 0) {
-                        cur = WHITE;
-                    }
-                    else {
-                        cur = shapes[i].color;
-                    }
-                    printf("\033[%dm  \033[0m", cur);
-                }
-                printf("\n");
-            }
-            printf("\n");
+    Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH];
+    State state = {
+        .x = CANVAS_WIDTH / 2 ,
+        .y = 0 ,
+        .score = 0 ,
+        .rotate = 0 ,
+        .fallTime = 0 
+    };
+    
+    for (int i = 0; i < CANVAS_HEIGHT; i++) {
+        for (int j = 0; j < CANVAS_WIDTH; j++) {
+            resetBlock(&canvas[i][j]);
         }
     }
+
+
+    for (int s = 0; s < shapes[1].size; s++) {
+        for (int t = 0; t < shapes[1].size; t++) {
+            if (shapes[1].rotates[0][s][t] == 1) {
+                setBlock(&canvas[s+4][t+4], shapes[1].color, shapes[1].shape, 1);
+            }
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    
+    printf("\033[0:0H\n");
+    for (int i = 0; i < CANVAS_HEIGHT; i++) {
+        printf("|");
+        for (int j = 0; j < CANVAS_WIDTH; j++) {
+            printf("\033[%dm\u3000", canvas[i][j].color);
+        }
+        printf("\033[0m");
+        printf("|\n");
+    }
+
+    
+
     return 0;
 }
